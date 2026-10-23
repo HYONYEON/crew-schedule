@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>촬영팀 공동 스케줄</title>
+<style>
+  :root{
+    --navy:#0F172A; --navy2:#1E293B; --orange:#F59E0B; --orange-d:#D97706;
+    --line:#E2E8F0; --muted:#64748B; --bg:#F8FAFC;
+    --ok:#16A34A; --ok-l:#DCFCE7; --no:#DC2626; --no-l:#FEE2E2; --maybe:#CA8A04; --maybe-l:#FEF9C3;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Pretendard","Noto Sans KR","Malgun Gothic",sans-serif;background:var(--bg);color:var(--navy);-webkit-font-smoothing:antialiased}
+  header{background:var(--navy);color:#fff;border-bottom:3px solid var(--orange)}
+  .wrap{max-width:1280px;margin:0 auto;padding:0 20px}
+  .hd{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0;flex-wrap:wrap}
+  .hd h1{margin:0;font-size:22px;letter-spacing:-.3px}
+  .hd h1 small{display:block;font-size:12px;font-weight:500;color:#94A3B8;margin-top:4px;letter-spacing:0}
+  .btn{border:1px solid #334155;background:var(--navy2);color:#E2E8F0;border-radius:8px;padding:8px 12px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:var(--orange)}
+  .panel{background:#fff;border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:16px}
+  .row{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}
+  .label{font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px}
+  .label.step{font-size:16px;margin-bottom:10px}
+  .who{flex:1 1 520px}
+  .groups{display:flex;flex-direction:column;gap:8px}
+  .grp{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+  .grp b{font-size:12px;color:var(--muted);width:84px}
+  .chip{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 12px;font-size:14px;cursor:pointer}
+  .chip:hover{border-color:var(--orange)}
+  .chip.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .guide{flex:1 1 300px;font-size:13px;line-height:1.6;color:#334155}
+  .guide .k{display:inline-block;min-width:44px;text-align:center;border-radius:6px;padding:1px 6px;font-weight:700;font-size:12px;margin-right:4px}
+  .k.ok{background:var(--ok-l);color:var(--ok)} .k.no{background:var(--no-l);color:var(--no)} .k.maybe{background:var(--maybe-l);color:var(--maybe)}
+  .best{flex:2 1 520px;display:flex;flex-direction:column;gap:12px}
+  .tier{border:1px solid var(--line);border-radius:10px;padding:10px 14px}
+  .tier.top{border:2px solid var(--ok);background:#F0FDF4}
+  .tier .th{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
+  .tier.top .th{font-size:15px;color:var(--ok)}
+  .tier .n{font-size:12px;font-weight:700;border-radius:999px;padding:1px 8px;background:#F1F5F9;color:var(--muted)}
+  .tier.top .n{background:var(--ok);color:#fff}
+  .days{display:flex;flex-wrap:wrap;gap:6px}
+  .days a{font-size:13px;text-decoration:none;color:var(--navy);border:1px solid var(--line);background:#fff;border-radius:8px;padding:4px 9px}
+  .days a:hover{border-color:var(--orange)}
+  .tier.top .days a{font-size:14px;font-weight:700;border-color:#86EFAC}
+  .days a small{color:var(--maybe);font-weight:600;margin-left:3px}
+  .days a i{font-style:normal;color:var(--muted);font-size:11px;margin-left:3px}
+  .empty-t{font-size:13px;color:var(--muted)}
+  .months{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:16px}
+  @media(max-width:1100px){.months{grid-template-columns:1fr 1fr}}
+  @media(max-width:720px){.months{grid-template-columns:1fr}}
+  .month{background:#fff;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .month h2{margin:0;padding:12px 14px;font-size:16px;background:var(--navy2);color:#fff}
+  .dow,.grid{display:grid;grid-template-columns:repeat(7,1fr)}
+  .dow div{font-size:11px;font-weight:700;text-align:center;padding:6px 0;color:var(--muted);border-bottom:1px solid var(--line)}
+  .dow div:first-child{color:var(--no)} .dow div:last-child{color:#2563EB}
+  .cell{min-height:78px;border-right:1px solid var(--line);border-bottom:1px solid var(--line);padding:5px;cursor:pointer;position:relative;display:flex;flex-direction:column;gap:3px;transition:background .1s}
+  .cell:nth-child(7n){border-right:none}
+  .cell:hover{background:#FFFBEB}
+  .cell.empty{background:#FAFAFA;cursor:default}
+  .cell.sel{outline:2px solid var(--orange);outline-offset:-2px;z-index:1}
+  .cell.past{opacity:.45}
+  .d{font-size:13px;font-weight:700}
+  .cell.sun .d,.cell.hol .d{color:var(--no)} .cell.sat .d{color:#2563EB}
+  .hname{font-size:10px;color:var(--no);font-weight:600;line-height:1.1}
+  .mine{position:absolute;top:5px;right:5px;font-size:11px;font-weight:700;border-radius:5px;padding:1px 5px}
+  .mine.ok{background:var(--ok);color:#fff} .mine.no{background:var(--no);color:#fff} .mine.maybe{background:var(--maybe);color:#fff}
+  .bar{height:5px;border-radius:3px;background:#F1F5F9;overflow:hidden;display:flex;margin-top:auto}
+  .bar i{display:block;height:100%}
+  .bar .o{background:var(--ok)} .bar .m{background:var(--maybe)} .bar .n{background:var(--no)}
+  .c{font-size:11px;color:var(--muted)} .c b{color:var(--ok)}
+  .detail{position:sticky;bottom:0;z-index:5;margin-top:16px;background:#fff;border:1px solid var(--line);border-top:3px solid var(--orange);border-radius:12px 12px 0 0;padding:14px 18px;box-shadow:0 -6px 20px rgba(15,23,42,.08)}
+  .detail h3{margin:0 0 10px;font-size:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+  .setbtns{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+  .setbtns button{border:1px solid var(--line);background:#fff;border-radius:8px;padding:8px 14px;font-size:14px;font-weight:700;cursor:pointer}
+  .setbtns .ok.on{background:var(--ok);color:#fff;border-color:var(--ok)}
+  .setbtns .no.on{background:var(--no);color:#fff;border-color:var(--no)}
+  .setbtns .maybe.on{background:var(--maybe);color:#fff;border-color:var(--maybe)}
+  .setbtns .clr{color:var(--muted);font-weight:500}
+  .setbtns button:disabled{opacity:.4;cursor:default}
+  .lists{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;font-size:13px}
+  @media(max-width:720px){.lists{grid-template-columns:1fr 1fr}}
+  .lists div b{display:block;font-size:12px;margin-bottom:4px}
+  .modebtn{margin-top:12px;border:2px solid var(--orange);background:#fff;color:var(--orange-d);border-radius:10px;padding:9px 14px;font-size:14px;font-weight:700;cursor:pointer}
+  .modebtn.on{background:var(--orange);color:#fff}
+  .modehint{display:block;font-size:12px;color:var(--muted);margin-top:6px}
+  .cell.pick{background:#FFEDD5;outline:2px solid var(--orange);outline-offset:-2px;z-index:1}
+  .cell.pick .d::after{content:' ✓';color:var(--orange-d)}
+  .multi .dow div{cursor:pointer} .multi .dow div:hover{background:#FEF3C7}
+  .month h2{display:flex;align-items:center;gap:6px}
+  .mpick{margin-left:0;border:1px solid #475569;background:transparent;color:#E2E8F0;border-radius:6px;padding:3px 8px;font-size:12px;cursor:pointer}
+  .mpick:first-of-type{margin-left:auto}
+  .mpick:hover{border-color:var(--orange);color:#fff}
+  .notice{background:#FEF3C7;border:1px solid #FCD34D;color:#92400E;border-radius:8px;padding:10px 14px;font-size:13px;margin-top:16px;display:none}
+  .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:var(--navy);color:#fff;padding:10px 16px;border-radius:8px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:9}
+  .toast.show{opacity:1}
+  footer{color:var(--muted);font-size:12px;text-align:center;padding:28px 0 40px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap hd">
+    <h1 id="title">촬영팀 공동 스케줄<small id="range">불러오는 중...</small></h1>
+    <div><span id="updated" style="font-size:12px;color:#94A3B8;margin-right:8px"></span><button class="btn" id="reload">새로고침</button></div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="notice" id="notice"></div>
+
+  <div class="panel row">
+    <div class="who">
+      <div class="label step">① 내 이름을 먼저 고르세요</div>
+      <div class="groups" id="members"></div>
+    </div>
+    <div class="guide">
+      <div class="label step">② 날짜를 누르고 상태를 고르세요</div>
+      <span class="k ok">가능</span><span class="k maybe">미정</span><br>
+      달력 칸의 막대는 <b>가능 · 미정</b> 인원 비율입니다.
+      <div id="modeBox"></div>
+    </div>
+  </div>
+
+  <div class="panel row">
+    <div style="flex:1 1 280px">
+      <div class="label">촬영 안내</div>
+      <div style="font-size:13px;line-height:1.7;color:#334155">촬영팀이 <b>공통으로 가능한 날</b>을 모으는 페이지입니다.<br>A-prime · 조성민 대표님 · 퍼플 유니버스 등<br>모든 프로젝트 촬영일은 이 일정을 기준으로 잡습니다.<br>프로젝트와 상관없이 <b>내가 촬영 가능한 날</b>을 모두 표시해 주세요.</div>
+    </div>
+    <div class="best" id="best"></div>
+  </div>
+
+  <div class="months" id="months"></div>
+
+  <div class="detail" id="detail" style="display:none"></div>
+</main>
+<footer>촬영팀 공동 스케줄 · 이 페이지의 선택은 촬영팀에게만 공유됩니다</footer>
+<div class="toast" id="toast"></div>
+
+<script>
+// 촬영팀 전용 구글 시트의 Apps Script 웹앱 주소 (조성민 대표님 페이지와 다른 주소여야 함)
+// 비워 두면 이 브라우저에만 저장되는 미리보기 모드로 동작합니다.
+const API = '';
+
+const HOLIDAYS = {
+  '2026-10-03':'개천절','2026-10-05':'대체공휴일','2026-10-09':'한글날','2026-12-25':'성탄절',
+  '2027-01-01':'신정','2027-02-06':'설날','2027-02-07':'설날','2027-02-08':'설날','2027-02-09':'대체공휴일','2027-03-01':'삼일절'
+};
+const ST_CLS = {'가능':'ok','불가':'no','미정':'maybe'};
+const DOW = ['일','월','화','수','목','금','토'];
+const ME_KEY = 'crew_schedule_me', DEMO_KEY = 'crew_schedule_demo';
+
+let DATA = {config:{}, members:[], availability:[]};
+let me = null, selDate = null;
+let multi = false; const picked = new Set();
+try { me = localStorage.getItem(ME_KEY); } catch(e){}
+
+const $ = id => document.getElementById(id);
+const pad = n => String(n).padStart(2,'0');
+const ymd = (y,m,d) => `${y}-${pad(m)}-${pad(d)}`;
+const todayStr = (()=>{const t=new Date();return ymd(t.getFullYear(),t.getMonth()+1,t.getDate());})();
+
+function toast(msg, ms){ const t=$('toast'); t.textContent=msg; t.classList.add('show'); clearTimeout(t._h); t._h=setTimeout(()=>t.classList.remove('show'), ms||1800); }
+function notice(msg){ const n=$('notice'); n.style.display=msg?'block':'none'; n.textContent=msg||''; }
+
+// 미리보기 모드: 시트 연결 전, 이 브라우저에만 저장
+const DEMO = {
+  config:{startMonth:'2026-10', months:3, title:'촬영팀 공동 스케줄'},
+  members:['구주인','김남영','김효년','신소윤'].map(name=>({name, group:'촬영팀'}))
+};
+function demoLoad(){ let av=[]; try{ av = JSON.parse(localStorage.getItem(DEMO_KEY)||'[]'); }catch(_){} return {ok:true, ...DEMO, availability:av}; }
+function demoSave(){ try{ localStorage.setItem(DEMO_KEY, JSON.stringify(DATA.availability)); }catch(_){} return {ok:true}; }
+
+async function load(silent){
+  try{
+    if(!API){ DATA = demoLoad(); notice('미리보기 모드 — 아직 구글 시트와 연결되지 않아, 선택한 내용은 이 브라우저에만 저장됩니다.'); }
+    else{
+      const r = await fetch(API, {cache:'no-store'});
+      const j = await r.json();
+      if(!j.ok) throw new Error(j.error||'error');
+      DATA = j; notice('');
+    }
+    const t=new Date(); $('updated').textContent = `업데이트 ${pad(t.getHours())}:${pad(t.getMinutes())}`;
+  }catch(e){
+    if(!silent) notice('데이터를 불러오지 못했습니다. 잠시 후 새로고침 해주세요. 계속되면 김효년 PD에게 알려주세요.');
+  }
+  render();
+}
+
+const postJSON = body => !API ? Promise.resolve(demoSave()) : fetch(API, {method:'POST', headers:{'Content-Type':'text/plain;charset=utf-8'}, body: JSON.stringify(body)}).then(r=>r.json());
+
+function applyLocal(date, status){
+  DATA.availability = DATA.availability.filter(a => !(a.date===date && a.name===me));
+  if(status) DATA.availability.push({date, name:me, status});
+}
+
+async function save(date, status){
+  if(!me){ toast('먼저 내 이름을 골라주세요'); return; }
+  // 화면 먼저 반영
+  applyLocal(date, status);
+  render();
+  try{
+    const j = await postJSON({date, name:me, status});
+    if(!j.ok) throw new Error(j.error);
+    toast(status ? `${date.slice(5).replace('-','/')} ${status} 저장됨` : '선택 취소됨');
+  }catch(e){
+    toast('저장 실패 — 다시 시도해주세요');
+    load(true);
+  }
+}
+
+async function saveMany(dates, status){
+  if(!me){ toast('먼저 내 이름을 골라주세요'); return; }
+  if(!dates.length){ toast('먼저 날짜를 골라주세요'); return; }
+  dates = [...dates].sort();
+  dates.forEach(d => applyLocal(d, status));
+  picked.clear(); render();
+  const label = status ? `${dates.length}일 ${status}` : `${dates.length}일 기록 삭제`;
+  toast(`${label} 저장 중...`, 60000);
+  try{
+    const j = await postJSON({name:me, items: dates.map(date=>({date, status}))});
+    if(!j.ok) throw new Error(j.error);
+    toast(`${label} 저장됨`);
+  }catch(e){
+    toast('저장 실패 — 다시 시도해주세요', 3000); load(true);
+  }
+}
+
+function futureDaysOfMonth(ym, filter){
+  const [y,m] = ym.split('-').map(Number), n = new Date(y, m, 0).getDate(), out=[];
+  for(let d=1; d<=n; d++){ const k=ymd(y,m,d), w=new Date(y,m-1,d).getDay(); if(k>=todayStr && filter(w,k)) out.push(k); }
+  return out;
+}
+function togglePick(keys){
+  if(!keys.length){ toast('선택할 수 있는 날짜가 없어요'); return; }
+  const allOn = keys.every(k=>picked.has(k));
+  keys.forEach(k => allOn ? picked.delete(k) : picked.add(k));
+  render();
+}
+
+const groupOf = m => String(m.group||'').trim() || '촬영팀';
+
+function statsFor(date){
+  const names = new Set(DATA.members.map(m=>m.name));
+  const s = {'가능':[], '미정':[], '불가':[]};
+  DATA.availability.forEach(a => { if(a.date===date && names.has(a.name) && s[a.status]) s[a.status].push(a.name); });
+  const answered = new Set([...s['가능'],...s['미정'],...s['불가']]);
+  s['미응답'] = [...names].filter(n=>!answered.has(n));
+  s.total = names.size;
+  return s;
+}
+
+function render(){
+  const cfg = DATA.config || {};
+  const title = cfg.title || '촬영팀 공동 스케줄';
+  document.title = title;
+  const [sy, sm] = (cfg.startMonth || todayStr.slice(0,7)).split('-').map(Number);
+  const months = cfg.months || 3;
+  const endM = new Date(sy, sm-1+months-1, 1);
+  $('title').innerHTML = `${title}<small>${sy}년 ${sm}월 ~ ${endM.getFullYear()}년 ${endM.getMonth()+1}월 · 촬영팀 ${DATA.members.length}명</small>`;
+
+  // 멤버
+  const groups = [...new Set(DATA.members.map(groupOf))];
+  if(me && !DATA.members.some(m=>m.name===me) && DATA.members.length) me = null;
+  $('members').innerHTML = groups.map(g => `<div class="grp"><b>${g}</b>${
+    DATA.members.filter(m=>groupOf(m)===g).map(m=>`<button class="chip ${m.name===me?'on':''}" data-name="${m.name}">${m.name}</button>`).join('')
+  }</div>`).join('') || '<span class="c">멤버 불러오는 중...</span>';
+
+  // 여러 날 선택 모드
+  $('modeBox').innerHTML = `<button class="modebtn ${multi?'on':''}" id="multiToggle">${multi?'✓ 여러 날 선택 중 — 끝내기':'여러 날 한 번에 선택하기'}</button>
+    ${multi?'<span class="modehint">날짜를 여러 개 누르거나, <b>요일 이름</b>을 누르면 그 달의 해당 요일 전체가 선택돼요.</span>':''}`;
+  $('months').classList.toggle('multi', multi);
+
+  // 달력
+  const mineMap = {}; DATA.availability.forEach(a => { if(a.name===me) mineMap[a.date]=a.status; });
+  const allDates = [];
+  let html = '';
+  for(let i=0;i<months;i++){
+    const dt = new Date(sy, sm-1+i, 1), y=dt.getFullYear(), m=dt.getMonth()+1;
+    const first = dt.getDay(), days = new Date(y, m, 0).getDate();
+    const ymk = `${y}-${pad(m)}`;
+    html += `<section class="month"><h2>${y}년 ${m}월${multi?`<button class="mpick" data-mpick="weekday" data-ym="${ymk}">평일 전체</button><button class="mpick" data-mpick="all" data-ym="${ymk}">이 달 전체</button>`:''}</h2><div class="dow">${DOW.map((d,wi)=>`<div data-dow="${wi}" data-ym="${ymk}">${d}</div>`).join('')}</div><div class="grid">`;
+    for(let e=0;e<first;e++) html += `<div class="cell empty"></div>`;
+    for(let d=1; d<=days; d++){
+      const key = ymd(y,m,d), w = (first+d-1)%7; allDates.push(key);
+      const s = statsFor(key), tot = s.total||1;
+      const cls = ['cell', w===0?'sun':'', w===6?'sat':'', HOLIDAYS[key]?'hol':'', key<todayStr?'past':'', (!multi && key===selDate)?'sel':'', (multi && picked.has(key))?'pick':''].join(' ');
+      const mine = mineMap[key] ? `<span class="mine ${ST_CLS[mineMap[key]]}">${mineMap[key]}</span>` : '';
+      html += `<div class="${cls}" data-date="${key}">
+        <span class="d">${d}</span>${HOLIDAYS[key]?`<span class="hname">${HOLIDAYS[key]}</span>`:''}${mine}
+        ${s['가능'].length||s['미정'].length ? `<span class="c">가능 <b>${s['가능'].length}</b>/${s.total}</span>`:''}
+        <div class="bar"><i class="o" style="width:${s['가능'].length/tot*100}%"></i><i class="m" style="width:${s['미정'].length/tot*100}%"></i></div>
+      </div>`;
+    }
+    html += `</div></section>`;
+  }
+  $('months').innerHTML = html;
+
+  // 요약: 전원 가능 → 한 명 빠짐 → 두 명 빠짐 순
+  const total = DATA.members.length;
+  const future = allDates.filter(k=>k>=todayStr).map(k=>({k, s:statsFor(k)}));
+  const chipOf = x => {
+    const dt=new Date(x.k+'T00:00:00');
+    const miss = x.s['가능'].length<total ? `<i>${DATA.members.map(m=>m.name).filter(n=>!x.s['가능'].includes(n)).join('·')} 빠짐</i>` : '';
+    return `<a href="#" data-jump="${x.k}">${dt.getMonth()+1}/${dt.getDate()} (${DOW[dt.getDay()]})${x.s['미정'].length?`<small>미정 ${x.s['미정'].length}</small>`:''}${miss}</a>`;
+  };
+  const tiers = total ? [total, total-1, total-2].filter(n=>n>0) : [];
+  $('best').innerHTML = tiers.map((n,ti)=>{
+    const list = future.filter(x=>x.s['가능'].length===n);
+    const head = ti===0 ? `✓ ${total}명 전원 가능한 날` : `${n}/${total}명 가능한 날`;
+    return `<div class="tier ${ti===0?'top':''}"><div class="th">${head}<span class="n">${list.length}일</span></div>
+      ${list.length ? `<div class="days">${list.map(chipOf).join('')}</div>` : `<div class="empty-t">${ti===0?'아직 전원 가능한 날이 없습니다':'해당 날짜가 없습니다'}</div>`}</div>`;
+  }).join('');
+
+  renderDetail();
+}
+
+function renderDetail(){
+  const box = $('detail');
+  if(multi){
+    box.style.display='block';
+    const list = [...picked].sort().map(k=>{const d=new Date(k+'T00:00:00');return `${d.getMonth()+1}/${d.getDate()}`;});
+    box.innerHTML = `
+      <h3>${picked.size ? `<span style="color:var(--orange-d)">${picked.size}일</span> 선택됨` : '달력에서 날짜를 골라주세요'}
+        <button class="btn" id="multiToggle" style="margin-left:auto;background:#fff;color:var(--muted);border-color:var(--line)">끝내기</button></h3>
+      ${list.length?`<div class="c" style="margin-bottom:10px;line-height:1.6">${list.join(' · ')}</div>`:''}
+      ${me ? `<div class="setbtns">
+          <span class="c" style="align-self:center;margin-right:4px"><b style="color:var(--navy)">${me}</b> 님은 선택한 날 모두</span>
+          <button class="ok" data-bulk="가능" ${picked.size?'':'disabled'}>가능</button>
+          <button class="maybe" data-bulk="미정" ${picked.size?'':'disabled'}>미정</button>
+          <button class="clr" data-bulk="" ${picked.size?'':'disabled'}>기록 지우기</button>
+          ${picked.size?`<button class="clr" data-clearpick="1">선택 해제</button>`:''}
+        </div>` : `<div class="c">위에서 <b style="color:var(--orange-d)">내 이름</b>을 먼저 골라주세요.</div>`}`;
+    return;
+  }
+  if(!selDate){ box.style.display='none'; return; }
+  const dt = new Date(selDate+'T00:00:00');
+  const s = statsFor(selDate);
+  const mine = (DATA.availability.find(a=>a.date===selDate && a.name===me)||{}).status || '';
+  box.style.display='block';
+  box.innerHTML = `
+    <h3>${dt.getMonth()+1}월 ${dt.getDate()}일 (${DOW[dt.getDay()]})${HOLIDAYS[selDate]?` <span class="hname" style="font-size:12px">${HOLIDAYS[selDate]}</span>`:''}
+      ${s.total && s['가능'].length===s.total ? '<span class="n" style="background:var(--ok);color:#fff;border-radius:999px;padding:2px 10px;font-size:12px">✓ 전원 가능</span>' : ''}
+      <button class="btn" id="closeDetail" style="margin-left:auto;background:#fff;color:var(--muted);border-color:var(--line)">닫기</button></h3>
+    ${me ? `<div class="setbtns">
+        <span class="c" style="align-self:center;margin-right:4px"><b style="color:var(--navy)">${me}</b> 님은</span>
+        ${['가능','미정'].map(st=>`<button class="${ST_CLS[st]} ${mine===st?'on':''}" data-set="${st}">${st}</button>`).join('')}
+        ${mine?`<button class="clr" data-set="">선택 취소</button>`:''}
+      </div>` : `<div class="c" style="margin-bottom:10px">위에서 <b style="color:var(--orange-d)">내 이름</b>을 먼저 고르면 이 날짜에 표시할 수 있어요.</div>`}
+    <div class="lists">
+      <div><b style="color:var(--ok)">가능 ${s['가능'].length}</b>${s['가능'].join(', ')||'-'}</div>
+      <div><b style="color:var(--maybe)">미정 ${s['미정'].length}</b>${s['미정'].join(', ')||'-'}</div>
+      <div><b style="color:var(--muted)">미응답 ${s['미응답'].length}</b>${s['미응답'].join(', ')||'-'}</div>
+    </div>`;
+}
+
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-name],[data-date],[data-set],[data-jump],[data-bulk],[data-clearpick],[data-mpick],[data-dow],#multiToggle,#closeDetail,#reload');
+  if(!t) return;
+  if(t.id==='reload'){ load(); return; }
+  if(t.id==='multiToggle'){ multi=!multi; picked.clear(); selDate=null; render(); if(multi && !me) toast('먼저 내 이름을 골라주세요'); return; }
+  if(t.dataset.bulk!==undefined){ saveMany([...picked], t.dataset.bulk); return; }
+  if(t.dataset.clearpick){ picked.clear(); render(); return; }
+  if(t.dataset.mpick){ togglePick(futureDaysOfMonth(t.dataset.ym, t.dataset.mpick==='weekday' ? (w=>w>0&&w<6) : (()=>true))); return; }
+  if(t.dataset.dow!==undefined){ if(!multi) return; const wi=+t.dataset.dow; togglePick(futureDaysOfMonth(t.dataset.ym, w=>w===wi)); return; }
+  if(t.id==='closeDetail'){ selDate=null; render(); return; }
+  if(t.dataset.name!==undefined){ me = (me===t.dataset.name)?null:t.dataset.name; try{ me?localStorage.setItem(ME_KEY,me):localStorage.removeItem(ME_KEY); }catch(_){} render(); return; }
+  if(t.dataset.set!==undefined){ save(selDate, t.dataset.set); return; }
+  if(t.dataset.jump){ e.preventDefault(); if(multi) return; selDate=t.dataset.jump; render(); document.querySelector(`[data-date="${selDate}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
+  if(t.dataset.date){
+    const k=t.dataset.date;
+    if(multi){ if(k<todayStr){ toast('지난 날짜는 고를 수 없어요'); return; } picked.has(k)?picked.delete(k):picked.add(k); render(); return; }
+    selDate = (selDate===k)?null:k; render();
+  }
+});
+
+load();
+setInterval(()=>load(true), 60000);
+</script>
+</body>
+</html>
