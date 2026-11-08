@@ -185,7 +185,7 @@ function notice(msg){ const n=$('notice'); n.style.display=msg?'block':'none'; n
 
 // 미리보기 모드: 시트 연결 전, 이 브라우저에만 저장
 const DEMO = {
-  config:{startMonth:'2026-10', months:3, title:'촬영팀 공동 스케줄'},
+  config:{startMonth:'2026-11', months:6, title:'촬영팀 공동 스케줄'},
   members:['구주인','김남영','김효년','신소윤','최진영'].map(name=>({name, group:'촬영팀'}))
 };
 function demoLoad(){ let av=[]; try{ av = JSON.parse(localStorage.getItem(DEMO_KEY)||'[]'); }catch(_){} return {ok:true, ...DEMO, availability:av}; }
