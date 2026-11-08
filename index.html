@@ -34,6 +34,14 @@
   .guide .k{display:inline-block;min-width:44px;text-align:center;border-radius:6px;padding:1px 6px;font-weight:700;font-size:12px;margin-right:4px}
   .k.ok{background:var(--ok-l);color:var(--ok)} .k.no{background:var(--no-l);color:var(--no)} .k.maybe{background:var(--maybe-l);color:var(--maybe)}
   .best{flex:2 1 520px;display:flex;flex-direction:column;gap:12px}
+  .ptabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+  .ptabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:7px 14px;font-size:14px;font-weight:700;cursor:pointer;color:var(--navy)}
+  .ptabs button:hover{border-color:var(--orange)}
+  .ptabs button.on{background:var(--navy);color:#fff;border-color:var(--navy)}
+  .ptabs button span{font-weight:500;font-size:12px;margin-left:4px;opacity:.75}
+  .pinfo{font-size:12px;color:var(--muted)}
+  .tag{font-size:10px;font-weight:700;color:var(--muted);margin-left:5px}
+  .chip.on .tag{color:#CBD5E1}
   .tier{border:1px solid var(--line);border-radius:10px;padding:10px 14px}
   .tier.top{border:2px solid var(--ok);background:#F0FDF4}
   .tier .th{font-size:13px;font-weight:700;margin-bottom:6px;display:flex;align-items:center;gap:8px}
@@ -126,6 +134,12 @@
     <div style="flex:1 1 280px">
       <div class="label">촬영 안내</div>
       <div style="font-size:13px;line-height:1.7;color:#334155">촬영팀이 <b>공통으로 가능한 날</b>을 모으는 페이지입니다.<br>A-prime · 조성민 대표님 · 퍼플 유니버스 등<br>모든 프로젝트 촬영일은 이 일정을 기준으로 잡습니다.<br>프로젝트와 상관없이 <b>내가 촬영 가능한 날</b>을 모두 표시해 주세요.</div>
+      <div class="label" style="margin-top:12px">프로젝트별 촬영 인원 · 다른 페이지 참고</div>
+      <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:#334155">
+        <li><b>퍼플 유니버스</b>는 5명 전원 참석</li>
+        <li><b>신소윤</b> 님은 조성민 대표님 촬영 일정 페이지에서 제외</li>
+        <li><b>최진영</b> 님은 에이프라임 촬영 일정 페이지에서 제외</li>
+      </ul>
     </div>
     <div class="best" id="best"></div>
   </div>
@@ -148,12 +162,18 @@ const HOLIDAYS = {
 };
 const ST_CLS = {'가능':'ok','불가':'no','미정':'maybe'};
 const DOW = ['일','월','화','수','목','금','토'];
-const ME_KEY = 'crew_schedule_me', DEMO_KEY = 'crew_schedule_demo';
+const ME_KEY = 'crew_schedule_me', DEMO_KEY = 'crew_schedule_demo', PROJ_KEY = 'crew_schedule_project';
+// 프로젝트별 촬영 인원: 촬영팀 전체에서 빠지는 사람만 적음
+const PROJECTS = [
+  {name:'퍼플 유니버스', exclude:[]},
+  {name:'A-prime', exclude:['최진영']},
+  {name:'조성민 대표님', exclude:['신소윤']}
+];
 
 let DATA = {config:{}, members:[], availability:[]};
-let me = null, selDate = null;
+let me = null, selDate = null, project = PROJECTS[0].name;
 let multi = false; const picked = new Set();
-try { me = localStorage.getItem(ME_KEY); } catch(e){}
+try { me = localStorage.getItem(ME_KEY); const p = localStorage.getItem(PROJ_KEY); if(PROJECTS.some(x=>x.name===p)) project = p; } catch(e){}
 
 const $ = id => document.getElementById(id);
 const pad = n => String(n).padStart(2,'0');
@@ -166,7 +186,7 @@ function notice(msg){ const n=$('notice'); n.style.display=msg?'block':'none'; n
 // 미리보기 모드: 시트 연결 전, 이 브라우저에만 저장
 const DEMO = {
   config:{startMonth:'2026-10', months:3, title:'촬영팀 공동 스케줄'},
-  members:['구주인','김남영','김효년','신소윤'].map(name=>({name, group:'촬영팀'}))
+  members:['구주인','김남영','김효년','신소윤','최진영'].map(name=>({name, group:'촬영팀'}))
 };
 function demoLoad(){ let av=[]; try{ av = JSON.parse(localStorage.getItem(DEMO_KEY)||'[]'); }catch(_){} return {ok:true, ...DEMO, availability:av}; }
 function demoSave(){ try{ localStorage.setItem(DEMO_KEY, JSON.stringify(DATA.availability)); }catch(_){} return {ok:true}; }
@@ -240,8 +260,12 @@ function togglePick(keys){
 
 const groupOf = m => String(m.group||'').trim() || '촬영팀';
 
+const projOf = name => PROJECTS.find(p=>p.name===name) || PROJECTS[0];
+const membersOf = name => DATA.members.filter(m => !projOf(name).exclude.includes(m.name));
+const excludedFrom = person => PROJECTS.filter(p=>p.exclude.includes(person)).map(p=>p.name);
+
 function statsFor(date){
-  const names = new Set(DATA.members.map(m=>m.name));
+  const names = new Set(membersOf(project).map(m=>m.name));
   const s = {'가능':[], '미정':[], '불가':[]};
   DATA.availability.forEach(a => { if(a.date===date && names.has(a.name) && s[a.status]) s[a.status].push(a.name); });
   const answered = new Set([...s['가능'],...s['미정'],...s['불가']]);
@@ -263,7 +287,7 @@ function render(){
   const groups = [...new Set(DATA.members.map(groupOf))];
   if(me && !DATA.members.some(m=>m.name===me) && DATA.members.length) me = null;
   $('members').innerHTML = groups.map(g => `<div class="grp"><b>${g}</b>${
-    DATA.members.filter(m=>groupOf(m)===g).map(m=>`<button class="chip ${m.name===me?'on':''}" data-name="${m.name}">${m.name}</button>`).join('')
+    DATA.members.filter(m=>groupOf(m)===g).map(m=>`<button class="chip ${m.name===me?'on':''}" data-name="${m.name}">${m.name}${excludedFrom(m.name).length?`<span class="tag">${excludedFrom(m.name).join('·')} 제외</span>`:''}</button>`).join('')
   }</div>`).join('') || '<span class="c">멤버 불러오는 중...</span>';
 
   // 여러 날 선택 모드
@@ -297,17 +321,19 @@ function render(){
   $('months').innerHTML = html;
 
   // 요약: 전원 가능 → 한 명 빠짐 → 두 명 빠짐 순
-  const total = DATA.members.length;
+  const pm = membersOf(project), total = pm.length;
   const future = allDates.filter(k=>k>=todayStr).map(k=>({k, s:statsFor(k)}));
   const chipOf = x => {
     const dt=new Date(x.k+'T00:00:00');
-    const miss = x.s['가능'].length<total ? `<i>${DATA.members.map(m=>m.name).filter(n=>!x.s['가능'].includes(n)).join('·')} 빠짐</i>` : '';
+    const miss = x.s['가능'].length<total ? `<i>${pm.map(m=>m.name).filter(n=>!x.s['가능'].includes(n)).join('·')} 빠짐</i>` : '';
     return `<a href="#" data-jump="${x.k}">${dt.getMonth()+1}/${dt.getDate()} (${DOW[dt.getDay()]})${x.s['미정'].length?`<small>미정 ${x.s['미정'].length}</small>`:''}${miss}</a>`;
   };
   const tiers = total ? [total, total-1, total-2].filter(n=>n>0) : [];
-  $('best').innerHTML = tiers.map((n,ti)=>{
+  const tabs = `<div class="ptabs">${PROJECTS.map(p=>`<button class="${p.name===project?'on':''}" data-project="${p.name}">${p.name}<span>${membersOf(p.name).length}명</span></button>`).join('')}</div>
+    <div class="pinfo"><b>${project}</b> 촬영 인원: ${pm.map(m=>m.name).join(' · ')}${projOf(project).exclude.length?` (${projOf(project).exclude.join('·')} 제외)`:''}</div>`;
+  $('best').innerHTML = tabs + tiers.map((n,ti)=>{
     const list = future.filter(x=>x.s['가능'].length===n);
-    const head = ti===0 ? `✓ ${total}명 전원 가능한 날` : `${n}/${total}명 가능한 날`;
+    const head = ti===0 ? `✓ ${project} ${total}명 전원 가능한 날` : `${n}/${total}명 가능한 날`;
     return `<div class="tier ${ti===0?'top':''}"><div class="th">${head}<span class="n">${list.length}일</span></div>
       ${list.length ? `<div class="days">${list.map(chipOf).join('')}</div>` : `<div class="empty-t">${ti===0?'아직 전원 가능한 날이 없습니다':'해당 날짜가 없습니다'}</div>`}</div>`;
   }).join('');
@@ -355,7 +381,7 @@ function renderDetail(){
 }
 
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-name],[data-date],[data-set],[data-jump],[data-bulk],[data-clearpick],[data-mpick],[data-dow],#multiToggle,#closeDetail,#reload');
+  const t = e.target.closest('[data-project],[data-name],[data-date],[data-set],[data-jump],[data-bulk],[data-clearpick],[data-mpick],[data-dow],#multiToggle,#closeDetail,#reload');
   if(!t) return;
   if(t.id==='reload'){ load(); return; }
   if(t.id==='multiToggle'){ multi=!multi; picked.clear(); selDate=null; render(); if(multi && !me) toast('먼저 내 이름을 골라주세요'); return; }
@@ -364,6 +390,7 @@ document.addEventListener('click', e => {
   if(t.dataset.mpick){ togglePick(futureDaysOfMonth(t.dataset.ym, t.dataset.mpick==='weekday' ? (w=>w>0&&w<6) : (()=>true))); return; }
   if(t.dataset.dow!==undefined){ if(!multi) return; const wi=+t.dataset.dow; togglePick(futureDaysOfMonth(t.dataset.ym, w=>w===wi)); return; }
   if(t.id==='closeDetail'){ selDate=null; render(); return; }
+  if(t.dataset.project){ project=t.dataset.project; try{ localStorage.setItem(PROJ_KEY,project); }catch(_){} render(); return; }
   if(t.dataset.name!==undefined){ me = (me===t.dataset.name)?null:t.dataset.name; try{ me?localStorage.setItem(ME_KEY,me):localStorage.removeItem(ME_KEY); }catch(_){} render(); return; }
   if(t.dataset.set!==undefined){ save(selDate, t.dataset.set); return; }
   if(t.dataset.jump){ e.preventDefault(); if(multi) return; selDate=t.dataset.jump; render(); document.querySelector(`[data-date="${selDate}"]`)?.scrollIntoView({behavior:'smooth',block:'center'}); return; }
