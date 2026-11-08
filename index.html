@@ -278,8 +278,10 @@ function render(){
   const cfg = DATA.config || {};
   const title = cfg.title || '촬영팀 공동 스케줄';
   document.title = title;
-  const [sy, sm] = (cfg.startMonth || todayStr.slice(0,7)).split('-').map(Number);
-  const months = cfg.months || 3;
+  // 지난 달은 숨김: 시트의 시작 월이 이번 달보다 앞이면 이번 달부터 표시, 최소 4개월
+  const startYm = [cfg.startMonth || '', todayStr.slice(0,7)].sort().pop();
+  const [sy, sm] = startYm.split('-').map(Number);
+  const months = Math.max(cfg.months || 0, 4);
   const endM = new Date(sy, sm-1+months-1, 1);
   $('title').innerHTML = `${title}<small>${sy}년 ${sm}월 ~ ${endM.getFullYear()}년 ${endM.getMonth()+1}월 · 촬영팀 ${DATA.members.length}명</small>`;
 
